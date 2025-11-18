@@ -1656,48 +1656,46 @@
             }
 
             try {
-                // 💯 RIDUZIONE DRASTICA 90% - VERSIONE DESKTOP ESTREMA
-                console.log(`🔴 Desktop canvas originale: ${clientSignatureCanvas.width}x${clientSignatureCanvas.height}`);
+                // ✅ COMPRESSIONE BILANCIATA DESKTOP - Qualità vs Dimensioni
+                console.log(`🖥️ Desktop canvas originale: ${clientSignatureCanvas.width}x${clientSignatureCanvas.height}`);
                 
-                // STEP 1: Trim aggressivo
+                // STEP 1: Trim spazi bianchi
                 const trimmedCanvas = trimCanvasWhitespace(clientSignatureCanvas);
                 console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                 
-                // STEP 2: Ridimensiona IMMEDIATAMENTE a dimensioni MINI (desktop un po' più grande di mobile)
-                const miniCanvas = document.createElement('canvas');
-                const miniCtx = miniCanvas.getContext('2d');
+                // STEP 2: Parti da PNG per qualità base
+                let signatureData = trimmedCanvas.toDataURL('image/png');
+                console.log(`📊 PNG originale: ${Math.round(signatureData.length/1000)}KB`);
                 
-                // Dimensioni ridotte per desktop (leggermente più grandi del mobile)
-                miniCanvas.width = Math.min(120, Math.max(60, trimmedCanvas.width * 0.25));
-                miniCanvas.height = Math.min(60, Math.max(30, trimmedCanvas.height * 0.25));
-                
-                // Sfondo bianco
-                miniCtx.fillStyle = 'white';
-                miniCtx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
-                
-                // Ridisegna firma in versione mini
-                miniCtx.drawImage(trimmedCanvas, 0, 0, miniCanvas.width, miniCanvas.height);
-                
-                // STEP 3: Compressione JPEG qualità minima
-                let signatureData = miniCanvas.toDataURL('image/jpeg', 0.15); // 15% qualità desktop
-                
-                console.log(`💯 DESKTOP FINALE: ${miniCanvas.width}x${miniCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
-                
-                // Controllo sicurezza: se ancora troppo, usa micro formato
-                if (signatureData.length > 20000) { // >20KB troppo per desktop
-                    const microCanvas = document.createElement('canvas');
-                    const microCtx = microCanvas.getContext('2d');
-                    
-                    microCanvas.width = 80;
-                    microCanvas.height = 40;
-                    
-                    microCtx.fillStyle = 'white';
-                    microCtx.fillRect(0, 0, 80, 40);
-                    microCtx.drawImage(trimmedCanvas, 0, 0, 80, 40);
-                    
-                    signatureData = microCanvas.toDataURL('image/jpeg', 0.1); // 10% qualità
-                    console.log(`🔴 MICRO DESKTOP 80x40 JPEG 10%: ${Math.round(signatureData.length/1000)}KB`);
+                // STEP 3: Compressione JPEG progressiva (desktop più tollerante)
+                if (signatureData.length > 40000) { // >40KB - JPEG 60%
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.6);
+                    console.log(`🗜️ JPEG 60%: ${Math.round(signatureData.length/1000)}KB`);
                 }
+                
+                if (signatureData.length > 60000) { // >60KB - JPEG 45%
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.45);
+                    console.log(`🗜️ JPEG 45%: ${Math.round(signatureData.length/1000)}KB`);
+                }
+                
+                // STEP 4: Resize moderato solo se necessario
+                if (signatureData.length > 100000) { // >100KB - Resize moderato
+                    const resizedCanvas = document.createElement('canvas');
+                    const resizedCtx = resizedCanvas.getContext('2d');
+                    
+                    // Desktop: ridimensiona a 75% (meno aggressivo del mobile)
+                    resizedCanvas.width = Math.max(150, trimmedCanvas.width * 0.75);
+                    resizedCanvas.height = Math.max(75, trimmedCanvas.height * 0.75);
+                    
+                    resizedCtx.fillStyle = 'white';
+                    resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
+                    resizedCtx.drawImage(trimmedCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+                    
+                    signatureData = resizedCanvas.toDataURL('image/jpeg', 0.5);
+                    console.log(`📏 Desktop Resize 75% + JPEG 50%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                }
+                
+                console.log(`✅ DESKTOP FINALE BILANCIATO: ${Math.round(signatureData.length/1000)}KB`);
                 
                 console.log(`✅ Dimensione finale: ${Math.round(signatureData.length/1000)}KB`);
                 clientSignatureData = signatureData;
