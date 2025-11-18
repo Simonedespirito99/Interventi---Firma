@@ -1656,58 +1656,47 @@
             }
 
             try {
-                // OTTIMIZZAZIONE CANVAS: Rimuovi spazi bianchi inutili
+                // 💯 RIDUZIONE DRASTICA 90% - VERSIONE DESKTOP ESTREMA
+                console.log(`🔴 Desktop canvas originale: ${clientSignatureCanvas.width}x${clientSignatureCanvas.height}`);
+                
+                // STEP 1: Trim aggressivo
                 const trimmedCanvas = trimCanvasWhitespace(clientSignatureCanvas);
-                console.log(`✂️ Canvas ottimizzato: ${clientSignatureCanvas.width}x${clientSignatureCanvas.height} → ${trimmedCanvas.width}x${trimmedCanvas.height}`);
+                console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                 
-                // COMPRESSIONE ULTRA-AGGRESSIVA per Google Apps Script
-                let signatureData = trimmedCanvas.toDataURL('image/png');
-                console.log(`🖊️ Originale: ${Math.round(signatureData.length/1000)}KB (${trimmedCanvas.width}x${trimmedCanvas.height})`);
+                // STEP 2: Ridimensiona IMMEDIATAMENTE a dimensioni MINI (desktop un po' più grande di mobile)
+                const miniCanvas = document.createElement('canvas');
+                const miniCtx = miniCanvas.getContext('2d');
                 
-                // Strategia 1: JPEG 30% se >15KB
-                if (signatureData.length > 15000) {
-                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.3);
-                    console.log(`🗜️ JPEG 30%: ${Math.round(signatureData.length/1000)}KB`);
-                }
+                // Dimensioni ridotte per desktop (leggermente più grandi del mobile)
+                miniCanvas.width = Math.min(120, Math.max(60, trimmedCanvas.width * 0.25));
+                miniCanvas.height = Math.min(60, Math.max(30, trimmedCanvas.height * 0.25));
                 
-                // Strategia 2: JPEG 20% se >25KB 
-                if (signatureData.length > 25000) {
-                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.2);
-                    console.log(`🗜️ JPEG 20%: ${Math.round(signatureData.length/1000)}KB`);
-                }
+                // Sfondo bianco
+                miniCtx.fillStyle = 'white';
+                miniCtx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
                 
-                // Strategia 3: Resize drastico se >35KB
-                if (signatureData.length > 35000) {
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    
-                    // Dimensioni target molto piccole
-                    tempCanvas.width = Math.min(300, trimmedCanvas.width * 0.4);
-                    tempCanvas.height = Math.min(150, trimmedCanvas.height * 0.4);
-                    
-                    // Sfondo bianco per contrasto
-                    tempCtx.fillStyle = 'white';
-                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    
-                    // Ridisegna firma ridimensionata
-                    tempCtx.drawImage(trimmedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
-                    signatureData = tempCanvas.toDataURL('image/jpeg', 0.25);
-                    console.log(`🗜️ Resize ${tempCanvas.width}x${tempCanvas.height} JPEG 25%: ${Math.round(signatureData.length/1000)}KB`);
-                }
+                // Ridisegna firma in versione mini
+                miniCtx.drawImage(trimmedCanvas, 0, 0, miniCanvas.width, miniCanvas.height);
                 
-                // Strategia 4: Dimensioni minime se >50KB (ultima risorsa)
-                if (signatureData.length > 50000) {
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
+                // STEP 3: Compressione JPEG qualità minima
+                let signatureData = miniCanvas.toDataURL('image/jpeg', 0.15); // 15% qualità desktop
+                
+                console.log(`💯 DESKTOP FINALE: ${miniCanvas.width}x${miniCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                
+                // Controllo sicurezza: se ancora troppo, usa micro formato
+                if (signatureData.length > 20000) { // >20KB troppo per desktop
+                    const microCanvas = document.createElement('canvas');
+                    const microCtx = microCanvas.getContext('2d');
                     
-                    tempCanvas.width = 200;
-                    tempCanvas.height = 100;
+                    microCanvas.width = 80;
+                    microCanvas.height = 40;
                     
-                    tempCtx.fillStyle = 'white';
-                    tempCtx.fillRect(0, 0, 200, 100);
-                    tempCtx.drawImage(trimmedCanvas, 0, 0, 200, 100);
-                    signatureData = tempCanvas.toDataURL('image/jpeg', 0.15);
-                    console.log(`🗜️ MINI 200x100 JPEG 15%: ${Math.round(signatureData.length/1000)}KB`);
+                    microCtx.fillStyle = 'white';
+                    microCtx.fillRect(0, 0, 80, 40);
+                    microCtx.drawImage(trimmedCanvas, 0, 0, 80, 40);
+                    
+                    signatureData = microCanvas.toDataURL('image/jpeg', 0.1); // 10% qualità
+                    console.log(`🔴 MICRO DESKTOP 80x40 JPEG 10%: ${Math.round(signatureData.length/1000)}KB`);
                 }
                 
                 console.log(`✅ Dimensione finale: ${Math.round(signatureData.length/1000)}KB`);
@@ -1724,7 +1713,7 @@
 
         // Funzione rimossa - la firma cliente viene ora inviata durante il submit del rapporto
 
-        // ✂️ FUNZIONE OTTIMIZZAZIONE CANVAS: Rimuove spazi bianchi inutili
+        // 🔴 FUNZIONE TRIM ULTRA-AGGRESSIVA DESKTOP
         function trimCanvasWhitespace(canvas) {
             const ctx = canvas.getContext('2d');
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -1732,14 +1721,19 @@
             
             let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
             
-            // Trova i bounds del contenuto non-bianco
+            // Trova bounds con tolleranza per grigio chiaro
             for (let y = 0; y < canvas.height; y++) {
                 for (let x = 0; x < canvas.width; x++) {
                     const index = (y * canvas.width + x) * 4;
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
                     const alpha = data[index + 3];
                     
-                    // Se il pixel non è trasparente o bianco puro
-                    if (alpha > 0 && !(data[index] === 255 && data[index + 1] === 255 && data[index + 2] === 255)) {
+                    // Pixel significativo se non è quasi-bianco
+                    const isSignificant = alpha > 10 && (r < 250 || g < 250 || b < 250);
+                    
+                    if (isSignificant) {
                         minX = Math.min(minX, x);
                         minY = Math.min(minY, y);
                         maxX = Math.max(maxX, x);
@@ -1748,22 +1742,24 @@
                 }
             }
             
-            // Se non c'è contenuto, ritorna canvas piccolo
+            // Canvas vuoto: ritorna mini canvas
             if (minX >= maxX || minY >= maxY) {
                 const emptyCanvas = document.createElement('canvas');
-                emptyCanvas.width = 100;
-                emptyCanvas.height = 50;
+                emptyCanvas.width = 60;
+                emptyCanvas.height = 30;
+                const emptyCtx = emptyCanvas.getContext('2d');
+                emptyCtx.fillStyle = 'white';
+                emptyCtx.fillRect(0, 0, 60, 30);
                 return emptyCanvas;
             }
             
-            // Aggiungi padding minimo
-            const padding = 5;
+            // Padding MINIMO desktop
+            const padding = 2;
             minX = Math.max(0, minX - padding);
             minY = Math.max(0, minY - padding);
             maxX = Math.min(canvas.width - 1, maxX + padding);
             maxY = Math.min(canvas.height - 1, maxY + padding);
             
-            // Crea canvas ottimizzato
             const trimmedCanvas = document.createElement('canvas');
             trimmedCanvas.width = maxX - minX + 1;
             trimmedCanvas.height = maxY - minY + 1;
@@ -1771,8 +1767,6 @@
             const trimmedCtx = trimmedCanvas.getContext('2d');
             trimmedCtx.fillStyle = 'white';
             trimmedCtx.fillRect(0, 0, trimmedCanvas.width, trimmedCanvas.height);
-            
-            // Copia solo la parte con contenuto
             trimmedCtx.drawImage(canvas, minX, minY, trimmedCanvas.width, trimmedCanvas.height, 0, 0, trimmedCanvas.width, trimmedCanvas.height);
             
             return trimmedCanvas;
