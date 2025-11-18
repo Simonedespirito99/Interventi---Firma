@@ -367,7 +367,7 @@
                 </button>
                 
                 <!-- Sottomenu Interventi -->
-                <div id="interventi-submenu" class="mt-2 ml-4 space-y-2">
+                <div id="interventi-submenu" class="mt-2 ml-4 space-y-2 hidden">
                     <!-- Nuovo Intervento -->
                     <button id="new-intervento-button" class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -375,6 +375,15 @@
                         </svg>
                         <span>Nuovo Intervento</span>
                     </button>
+                    <!-- Modal scelta tipo intervento -->
+                    <div id="tipo-intervento-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+                        <div class="bg-white rounded-lg shadow-lg p-6 w-80">
+                            <h3 class="text-lg font-semibold mb-4">Scegli il tipo di intervento</h3>
+                            <button id="scegli-mud" class="w-full mb-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">MUD</button>
+                            <button id="scegli-ordinario" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Intervento Ordinario</button>
+                            <button id="chiudi-tipo-intervento" class="mt-4 w-full px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Annulla</button>
+                        </div>
+                    </div>
                     
                     <!-- Bozze -->
                     <button id="bozze-toggle" class="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 flex items-center justify-between">
@@ -1368,7 +1377,37 @@
             sidebarOverlay.addEventListener('click', closeSidebar);
 
             // Nuovo intervento
-            newInterventoButton.addEventListener('click', showNewInterventoModal);
+            // Mostra la scelta tipo intervento
+            newInterventoButton.addEventListener('click', function() {
+                document.getElementById('tipo-intervento-modal').classList.remove('hidden');
+            });
+
+            // Gestione scelta tipo intervento
+            document.getElementById('scegli-mud').addEventListener('click', function() {
+                document.getElementById('tipo-intervento-modal').classList.add('hidden');
+                showNewInterventoModal('MUD');
+            });
+            document.getElementById('scegli-ordinario').addEventListener('click', function() {
+                document.getElementById('tipo-intervento-modal').classList.add('hidden');
+                showNewInterventoModal('Ordinario');
+            });
+            document.getElementById('chiudi-tipo-intervento').addEventListener('click', function() {
+                document.getElementById('tipo-intervento-modal').classList.add('hidden');
+            });
+
+            // Aggiorna showNewInterventoModal per ricevere il tipo
+            function showNewInterventoModal(tipo) {
+                // ...existing code...
+                // Puoi gestire qui la logica per tipo intervento
+                if (tipo === 'MUD') {
+                    // Logica per MUD
+                    console.log('Apertura nuovo intervento MUD');
+                } else if (tipo === 'Ordinario') {
+                    // Logica per Intervento Ordinario
+                    console.log('Apertura nuovo intervento Ordinario');
+                }
+                // ...existing code...
+            }
             newInterventoCancel.addEventListener('click', hideNewInterventoModal);
             newInterventoConfirm.addEventListener('click', createNewIntervento);
             
