@@ -144,18 +144,33 @@ class SMIRTUtils {
     }
 
     /**
-     * Gestisce errori JSONP
+     * Gestisce errori JSONP con timeout dinamico e debug
      */
-    static createJSONPRequest(url, params, timeout = 30000) {
+    static createJSONPRequest(url, params, timeout = null) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonpCallback' + Date.now();
             let timeoutId;
             
+            // Calcola timeout dinamico in base ai dati
+            const dataSize = JSON.stringify(params).length;
+            const baseTimeout = 15000; // 15 secondi base (aumentato)
+            const extraTimeout = Math.floor(dataSize / 10000) * 5000; // +5s ogni 10KB
+            const dynamicTimeout = timeout || Math.min(baseTimeout + extraTimeout, 45000); // Max 45s
+            
+            console.log(`📊 JSONP ${params.action}: ${dataSize} bytes, timeout: ${dynamicTimeout}ms`);
+            
             window[callbackName] = function(response) {
                 clearTimeout(timeoutId);
+                console.log(`✅ Risposta JSONP ${params.action}:`, response);
                 delete window[callbackName];
                 if (script && script.parentNode) document.head.removeChild(script);
-                resolve(response);
+                
+                // Distingui tra timeout e errore reale
+                if (response.status === 'timeout') {
+                    resolve(response); // Timeout non è un errore bloccante
+                } else {
+                    resolve(response);
+                }
             };
             
             const script = document.createElement('script');
@@ -168,6 +183,7 @@ class SMIRTUtils {
             
             script.onerror = () => {
                 clearTimeout(timeoutId);
+                console.error(`❌ Errore script JSONP per ${params.action}`);
                 delete window[callbackName];
                 if (script && script.parentNode) document.head.removeChild(script);
                 reject(new Error('Errore di connessione al server'));
@@ -177,11 +193,17 @@ class SMIRTUtils {
             
             timeoutId = setTimeout(() => {
                 if (window[callbackName]) {
+                    console.warn(`⏰ Timeout JSONP per ${params.action} dopo ${dynamicTimeout}ms`);
                     delete window[callbackName];
                     if (script && script.parentNode) document.head.removeChild(script);
-                    reject(new Error(`Timeout (${timeout/1000}s). Il server non risponde.`));
+                    
+                    // Restituisci risposta timeout invece di reject
+                    resolve({
+                        status: 'timeout', 
+                        message: `Timeout dopo ${dynamicTimeout/1000}s - Dati potrebbero essere arrivati`
+                    });
                 }
-            }, timeout);
+            }, dynamicTimeout);
         });
     }
 
