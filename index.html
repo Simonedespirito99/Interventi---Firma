@@ -195,6 +195,11 @@
                             <span id="client-signature-text" class="text-red-600 dark:text-red-400">Firma del cliente richiesta</span>
                         </div>
                     </div>
+                    <!-- Anteprima firma cliente caricata su Drive -->
+                    <div id="client-signature-drive-preview" class="mb-4 hidden flex-col items-center">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Firma caricata su Drive:</label>
+                        <img id="client-signature-drive-image" src="" alt="Firma cliente Drive" class="max-w-full h-auto mx-auto border rounded-lg" style="max-height: 100px;">
+                    </div>
                     
                     <!-- Pulsanti per la firma del cliente -->
                     <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -468,13 +473,11 @@
                 <!-- Selezione Tipo Intervento -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo Intervento</label>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 gap-2">
                         <button id="tipo-mud" type="button" class="px-4 py-3 text-sm font-medium border-2 border-blue-600 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
                             📋 MUD
                         </button>
-                        <button id="tipo-ordinario" type="button" class="px-4 py-3 text-sm font-medium border-2 border-gray-300 text-gray-700 dark:text-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-500">
-                            📄 Ordinario
-                        </button>
+                        <!-- Interventi ordinari sono ora gestiti come default, nessun bottone dedicato -->
                     </div>
                 </div>
                 
@@ -487,14 +490,7 @@
                 </div>
                 
                 <!-- Messaggio per Ordinario -->
-                <div id="ordinario-message" class="hidden">
-                    <div class="p-3 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg">
-                        <p class="text-sm text-green-700 dark:text-green-300 text-center">
-                            📄 Intervento ordinario selezionato<br>
-                            <span class="text-xs">Non è richiesto alcun codice</span>
-                        </p>
-                    </div>
-                </div>
+                <!-- Rimosso messaggio per Ordinario -->
                 
                 <div class="flex space-x-4">
                     <button id="new-intervento-cancel" class="flex-1 px-4 py-2 text-gray-500 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500">
@@ -1110,6 +1106,29 @@
                     // FASE 2: Invio firma cliente separatamente
                     if (clientSignatureData) {
                         console.log('🖊️ FASE 2: Invio firma cliente...');
+                            console.log('🖊️ FASE 2: Invio firma cliente...');
+                            identificativo = formData.luogo + '_' + formData.dataInizio; // ID temporaneo
+                            response2 = await uploadClientSignatureToServer({
+                                identificativo: identificativo,
+                                tipoIntervento: getCurrentInterventoType(),
+                                mudValue: formData.mud, // Valore MUD per organizzazione cartelle
+                                signatureBase64: clientSignatureData
+                            });
+                        
+                            console.log('📨 FASE 2 - Risposta firma:', response2);
+                        
+                            if (response2.status !== 'success') {
+                                console.warn('⚠️ FASE 2 - Errore upload firma (non critico):', response2.message);
+                            } else {
+                                console.log('✅ FASE 2 completata - Firma cliente caricata');
+                                // Mostra anteprima firma caricata su Drive
+                                if (response2.driveUrl) {
+                                    const previewDiv = document.getElementById('client-signature-drive-preview');
+                                    const previewImg = document.getElementById('client-signature-drive-image');
+                                    previewImg.src = response2.driveUrl;
+                                    previewDiv.classList.remove('hidden');
+                                }
+                            }
                         const identificativo = formData.luogo + '_' + formData.dataInizio; // ID temporaneo
                         const response2 = await uploadClientSignatureToServer({
                             identificativo: identificativo,
@@ -1134,7 +1153,7 @@
                     let successMessage = '✅ Rapporto inviato con successo al Google Sheet!';
                     
                     if (result.buonoLavoro) {
-                        successMessage += `\n\n📋 Buono di Lavoro: ${result.buonoLavoro}`;
+                        successMessage += `\n\n🛠️ Buono di Lavoro: ${result.buonoLavoro}`;
                     }
                     
                     if (result.row) {
@@ -1142,8 +1161,8 @@
                     }
                     
                     successMessage += `\n\n🗓️ Data invio: ${new Date().toLocaleString('it-IT')}`;
-                    successMessage += `\n👤 Utente: ${formData.user}`;
-                    successMessage += `\n🏷️ MUD: ${formData.mud}`;
+                        successMessage += `\n👤 Utente: ${formData.user}`;
+                        successMessage += `\n🏷️ Intervento/MUD: ${formData.mud}`;
 
                     showAlert('Successo', successMessage, '✅');
 
@@ -1372,7 +1391,7 @@
             
             // Selezione tipo intervento
             tipoMudButton.addEventListener('click', () => selectInterventoType('mud'));
-            tipoOrdinarioButton.addEventListener('click', () => selectInterventoType('ordinario'));
+            // Rimosso listener per tipo ordinario
             
             // Validazione input MUD - solo numeri
             newMudInput.addEventListener('input', (e) => {
