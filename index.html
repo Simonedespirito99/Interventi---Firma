@@ -1656,19 +1656,48 @@
             }
 
             try {
-                // Comprimi firma se troppo grande (>50KB)
+                // Compressione aggressiva per Google Apps Script
                 let signatureData = clientSignatureCanvas.toDataURL('image/png');
-                if (signatureData.length > 50000) {
-                    console.log('🗜️ Firma cliente grande, compressione...');
-                    signatureData = clientSignatureCanvas.toDataURL('image/jpeg', 0.7); // Comprimi al 70%
+                
+                // Prima compressione se >25KB (soglia ottimizzata per GAS)
+                if (signatureData.length > 25000) {
+                    console.log('🗜️ Prima compressione firma cliente...');
+                    signatureData = clientSignatureCanvas.toDataURL('image/jpeg', 0.6); // 60% qualità
                 }
                 
-                console.log(`📏 Dimensione firma cliente: ${signatureData.length} caratteri`);
-                clientSignatureData = signatureData;
-                updateClientSignatureStatus(true);
+                // Seconda compressione se ancora >40KB (soglia ridotta)
+                if (signatureData.length > 40000) {
+                    console.log('🗜️ Compressione aggressiva firma cliente...');
+                    signatureData = clientSignatureCanvas.toDataURL('image/jpeg', 0.4); // 40% qualità
+                }
                 
-                // La firma verrà inviata al server durante il submit del rapporto
-                showAlert('Successo', 'Firma del cliente confermata! Sarà inviata insieme al rapporto.', 'success');
+                // Ultima risorsa: ridimensiona se ancora troppo grande
+                if (signatureData.length > 60000) {
+                    console.log('📏 Ridimensionamento firma cliente per GAS...');
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        // Ridimensiona al 70%
+                        tempCanvas.width = clientSignatureCanvas.width * 0.7;
+                        tempCanvas.height = clientSignatureCanvas.height * 0.7;
+                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                        signatureData = tempCanvas.toDataURL('image/jpeg', 0.5);
+                        console.log(`📏 Dimensione finale dopo ridimensionamento: ${signatureData.length} caratteri`);
+                        clientSignatureData = signatureData;
+                        updateClientSignatureStatus(true);
+                        showAlert('Successo', 'Firma del cliente confermata e ottimizzata! Sarà inviata insieme al rapporto.', 'success');
+                    };
+                    img.src = signatureData;
+                } else {
+                    console.log(`📏 Dimensione finale firma cliente: ${signatureData.length} caratteri`);
+                    clientSignatureData = signatureData;
+                    updateClientSignatureStatus(true);
+                    
+                    // La firma verrà inviata al server durante il submit del rapporto
+                    showAlert('Successo', 'Firma del cliente confermata! Sarà inviata insieme al rapporto.', 'success');
+                }
             } catch (error) {
                 console.error('Errore nel confermare la firma:', error);
                 showAlert('Errore', 'Errore nel confermare la firma.', 'error');
