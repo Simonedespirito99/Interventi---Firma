@@ -37,7 +37,7 @@
                     <!-- Firma touch-friendly -->
                     <div class="mt-6">
                         <label class="block text-lg font-medium mb-3 text-gray-700">✍️ Firma del Cliente:</label>
-                        <canvas id="signatureCanvas" width="280" height="120" class="signature-canvas w-full bg-white"></canvas>
+                        <canvas id="signatureCanvas" width="200" height="80" class="signature-canvas w-full bg-white"></canvas>
                         <button type="button" onclick="clearSignature()" class="mt-2 text-sm text-red-600 underline">🗑️ Cancella Firma</button>
                     </div>
                     
@@ -106,7 +106,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
         
-        // ✂️ FUNZIONE OTTIMIZZAZIONE CANVAS MOBILE
+        // 🔴 FUNZIONE TRIM ULTRA-AGGRESSIVA MOBILE
         function trimCanvasWhitespace(canvas) {
             const ctx = canvas.getContext('2d');
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -114,13 +114,19 @@
             
             let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
             
-            // Trova bounds del contenuto
+            // Trova bounds del contenuto - con tolleranza per grigio chiaro
             for (let y = 0; y < canvas.height; y++) {
                 for (let x = 0; x < canvas.width; x++) {
                     const index = (y * canvas.width + x) * 4;
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
                     const alpha = data[index + 3];
                     
-                    if (alpha > 0 && !(data[index] === 255 && data[index + 1] === 255 && data[index + 2] === 255)) {
+                    // Pixel significativo se non è bianco puro o trasparente
+                    const isSignificant = alpha > 10 && (r < 250 || g < 250 || b < 250);
+                    
+                    if (isSignificant) {
                         minX = Math.min(minX, x);
                         minY = Math.min(minY, y);
                         maxX = Math.max(maxX, x);
@@ -129,14 +135,19 @@
                 }
             }
             
+            // Se canvas vuoto, ritorna mini canvas
             if (minX >= maxX || minY >= maxY) {
                 const emptyCanvas = document.createElement('canvas');
-                emptyCanvas.width = 100;
-                emptyCanvas.height = 50;
+                emptyCanvas.width = 40;
+                emptyCanvas.height = 20;
+                const emptyCtx = emptyCanvas.getContext('2d');
+                emptyCtx.fillStyle = 'white';
+                emptyCtx.fillRect(0, 0, 40, 20);
                 return emptyCanvas;
             }
             
-            const padding = 3; // Padding ridotto per mobile
+            // Padding MINIMO per mobile
+            const padding = 1;
             minX = Math.max(0, minX - padding);
             minY = Math.max(0, minY - padding);
             maxX = Math.min(canvas.width - 1, maxX + padding);
@@ -248,57 +259,50 @@
                     emptyCanvas.height = canvas.height;
                     
                     if (signatureData !== emptyCanvas.toDataURL()) {
-                    // OTTIMIZZAZIONE MOBILE: Trim canvas
+                    // 💯 RIDUZIONE DRASTICA 90% - VERSIONE ESTREMA
+                    console.log(`🔴 Originale canvas: ${canvas.width}x${canvas.height}`);
+                    
+                    // STEP 1: Trim aggressivo (rimuove spazi bianchi)
                     const trimmedCanvas = trimCanvasWhitespace(canvas);
-                    signatureData = trimmedCanvas.toDataURL('image/png');
-                    console.log(`✂️ Mobile ottimizzato: ${canvas.width}x${canvas.height} → ${trimmedCanvas.width}x${trimmedCanvas.height}`);
+                    console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                     
-                    // COMPRESSIONE ULTRA-AGGRESSIVA MOBILE
-                    console.log(`📱 Mobile originale: ${Math.round(signatureData.length/1000)}KB (${trimmedCanvas.width}x${trimmedCanvas.height})`);
+                    // STEP 2: Ridimensiona IMMEDIATAMENTE a dimensioni MINI
+                    const miniCanvas = document.createElement('canvas');
+                    const miniCtx = miniCanvas.getContext('2d');
                     
-                    // Mobile: soglie più basse per touch screen
-                    if (signatureData.length > 12000) {
-                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.3);
-                        console.log(`🗜️ Mobile JPEG 30%: ${Math.round(signatureData.length/1000)}KB`);
+                    // Dimensioni ESTREMAMENTE ridotte per mobile
+                    miniCanvas.width = Math.min(80, Math.max(40, trimmedCanvas.width * 0.2));
+                    miniCanvas.height = Math.min(40, Math.max(20, trimmedCanvas.height * 0.2));
+                    
+                    // Sfondo bianco per contrasto
+                    miniCtx.fillStyle = 'white';
+                    miniCtx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
+                    
+                    // Ridisegna la firma in versione mini
+                    miniCtx.drawImage(trimmedCanvas, 0, 0, miniCanvas.width, miniCanvas.height);
+                    
+                    // STEP 3: Compressione JPEG qualità minima
+                    signatureData = miniCanvas.toDataURL('image/jpeg', 0.1); // 10% qualità
+                    
+                    console.log(`💯 RISULTATO FINALE: ${miniCanvas.width}x${miniCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                    
+                    // Controllo di sicurezza: se ancora troppo grande, usa dimensioni fisse minime
+                    if (signatureData.length > 15000) { // >15KB ancora troppo
+                        const microCanvas = document.createElement('canvas');
+                        const microCtx = microCanvas.getContext('2d');
+                        
+                        microCanvas.width = 60;
+                        microCanvas.height = 30;
+                        
+                        microCtx.fillStyle = 'white';
+                        microCtx.fillRect(0, 0, 60, 30);
+                        microCtx.drawImage(trimmedCanvas, 0, 0, 60, 30);
+                        
+                        signatureData = microCanvas.toDataURL('image/jpeg', 0.05); // 5% qualità
+                        console.log(`🔴 MICRO 60x30 JPEG 5%: ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    if (signatureData.length > 20000) {
-                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.2);
-                        console.log(`🗜️ Mobile JPEG 20%: ${Math.round(signatureData.length/1000)}KB`);
-                    }
-                    
-                    // Resize drastico mobile se >30KB
-                    if (signatureData.length > 30000) {
-                        const tempCanvas = document.createElement('canvas');
-                        const tempCtx = tempCanvas.getContext('2d');
-                        
-                        // Dimensioni mobile molto compatte
-                        tempCanvas.width = Math.min(250, trimmedCanvas.width * 0.3);
-                        tempCanvas.height = Math.min(125, trimmedCanvas.height * 0.3);
-                        
-                        tempCtx.fillStyle = 'white';
-                        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                        tempCtx.drawImage(trimmedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
-                        
-                        signatureData = tempCanvas.toDataURL('image/jpeg', 0.2);
-                        console.log(`🗜️ Mobile resize ${tempCanvas.width}x${tempCanvas.height}: ${Math.round(signatureData.length/1000)}KB`);
-                    }
-                    
-                    // Ultima risorsa mobile: mini formato
-                    if (signatureData.length > 45000) {
-                        const tempCanvas = document.createElement('canvas');
-                        const tempCtx = tempCanvas.getContext('2d');
-                        
-                        tempCanvas.width = 150;
-                        tempCanvas.height = 75;
-                        
-                        tempCtx.fillStyle = 'white';
-                        tempCtx.fillRect(0, 0, 150, 75);
-                        tempCtx.drawImage(trimmedCanvas, 0, 0, 150, 75);
-                        
-                        signatureData = tempCanvas.toDataURL('image/jpeg', 0.1);
-                        console.log(`🗜️ Mobile MINI 150x75: ${Math.round(signatureData.length/1000)}KB`);
-                    }                        console.log(`📏 Dimensione firma: ${signatureData.length} caratteri`);
+                    console.log(`📏 Dimensione firma: ${signatureData.length} caratteri`);
                         resultDiv.innerHTML = '📤 Caricamento firma cliente...';
                         
                         const signatureUpload = {
