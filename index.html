@@ -872,6 +872,8 @@
                     
                     // FASE 2: Invio firma cliente separatamente (versione ottimizzata)
                     if (clientSignatureData && response1.buonoLavoro) {
+                        console.log(`📤 Upload firma cliente per buono: ${response1.buonoLavoro}`);
+                        
                         const response2 = await uploadClientSignatureToServer({
                             buonoLavoro: response1.buonoLavoro,
                             tipoIntervento: getCurrentInterventoType(),
@@ -880,7 +882,9 @@
                         });
                         
                         if (response2.status === 'success') {
-                            console.log('✅ Firma cliente caricata:', response2.driveUrl);
+                            console.log('✅ Firma cliente caricata su Drive:', response2.driveUrl);
+                        } else if (response2.status === 'timeout') {
+                            console.warn('⚠️ Timeout upload firma cliente - Potrebbe essere caricata comunque');
                         } else {
                             console.warn('⚠️ Errore upload firma cliente:', response2.message);
                             // Non blocchiamo l'invio per errori firma - è un warning
@@ -1652,7 +1656,15 @@
             }
 
             try {
-                clientSignatureData = clientSignatureCanvas.toDataURL('image/png');
+                // Comprimi firma se troppo grande (>50KB)
+                let signatureData = clientSignatureCanvas.toDataURL('image/png');
+                if (signatureData.length > 50000) {
+                    console.log('🗜️ Firma cliente grande, compressione...');
+                    signatureData = clientSignatureCanvas.toDataURL('image/jpeg', 0.7); // Comprimi al 70%
+                }
+                
+                console.log(`📏 Dimensione firma cliente: ${signatureData.length} caratteri`);
+                clientSignatureData = signatureData;
                 updateClientSignatureStatus(true);
                 
                 // La firma verrà inviata al server durante il submit del rapporto
