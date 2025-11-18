@@ -1,0 +1,76 @@
+/**
+ * SMIRT App - Stili personalizzati
+ * File CSS separato per migliorare l'organizzazione del codice
+ */
+
+/* Base styles */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Modal states */
+#loading-overlay, 
+#alert-modal, 
+#new-intervento-modal {
+    display: none;
+}
+
+.app-section-visible {
+    display: block !important;
+}
+
+.app-flex-visible {
+    display: flex !important;
+}
+
+/* Component styles */
+.bozza-attiva {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+
+.button-loading {
+    cursor: not-allowed;
+    background-color: #9ca3af;
+}
+
+.button-loading:hover {
+    background-color: #9ca3af;
+}
+
+/* Loading spinner */
+.spinner-sm {
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid transparent;
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Sidebar animations */
+#sidebar-menu {
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(-100%);
+}
+
+#sidebar-menu.sidebar-open {
+    transform: translateX(0);
+}
+
+#sidebar-overlay {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Responsive improvements */
+@media (max-width: 640px) {
+    .spinner-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+}
