@@ -259,46 +259,46 @@
                     emptyCanvas.height = canvas.height;
                     
                     if (signatureData !== emptyCanvas.toDataURL()) {
-                    // ✅ COMPRESSIONE BILANCIATA - Qualità vs Dimensioni
+                    // ⚖️ COMPRESSIONE EQUILIBRATA MOBILE - Ottimale per GAS
                     console.log(`📱 Canvas mobile originale: ${canvas.width}x${canvas.height}`);
                     
-                    // STEP 1: Trim spazi bianchi (funzione che forse non veniva applicata prima)
+                    // STEP 1: Trim spazi bianchi (essenziale)
                     const trimmedCanvas = trimCanvasWhitespace(canvas);
                     console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                     
-                    // STEP 2: Parti da PNG per qualità base
-                    signatureData = trimmedCanvas.toDataURL('image/png');
-                    console.log(`📊 PNG originale: ${Math.round(signatureData.length/1000)}KB`);
+                    // STEP 2: Parti direttamente da JPEG 40% (mobile più aggressivo)
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.4);
+                    console.log(`🗜️ JPEG 40% iniziale: ${Math.round(signatureData.length/1000)}KB`);
                     
-                    // STEP 3: Compressione JPEG progressiva (non troppo aggressiva)
-                    if (signatureData.length > 30000) { // >30KB - JPEG 50%
-                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.5);
-                        console.log(`🗜️ JPEG 50%: ${Math.round(signatureData.length/1000)}KB`);
+                    // STEP 3: Compressione più aggressiva per mobile
+                    if (signatureData.length > 20000) { // >20KB - JPEG 30%
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.3);
+                        console.log(`🗜️ JPEG 30%: ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    if (signatureData.length > 50000) { // >50KB - JPEG 35%
-                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.35);
-                        console.log(`🗜️ JPEG 35%: ${Math.round(signatureData.length/1000)}KB`);
+                    if (signatureData.length > 35000) { // >35KB - JPEG 20%
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.2);
+                        console.log(`🗜️ JPEG 20%: ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    // STEP 4: Solo se necessario, resize moderato
-                    if (signatureData.length > 80000) { // >80KB - Resize moderato
+                    // STEP 4: Resize mobile se necessario
+                    if (signatureData.length > 50000) { // >50KB - Resize mobile
                         const resizedCanvas = document.createElement('canvas');
                         const resizedCtx = resizedCanvas.getContext('2d');
                         
-                        // Ridimensiona a 70% (non troppo piccolo)
-                        resizedCanvas.width = Math.max(100, trimmedCanvas.width * 0.7);
-                        resizedCanvas.height = Math.max(50, trimmedCanvas.height * 0.7);
+                        // Mobile: ridimensiona a 55% per efficacia
+                        resizedCanvas.width = Math.max(90, trimmedCanvas.width * 0.55);
+                        resizedCanvas.height = Math.max(45, trimmedCanvas.height * 0.55);
                         
                         resizedCtx.fillStyle = 'white';
                         resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
                         resizedCtx.drawImage(trimmedCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
                         
-                        signatureData = resizedCanvas.toDataURL('image/jpeg', 0.4);
-                        console.log(`📏 Resize 70% + JPEG 40%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                        signatureData = resizedCanvas.toDataURL('image/jpeg', 0.25);
+                        console.log(`📏 Mobile Resize 55% + JPEG 25%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    console.log(`✅ FINALE BILANCIATO: ${Math.round(signatureData.length/1000)}KB`);
+                    console.log(`⚖️ MOBILE EQUILIBRATO: ${Math.round(signatureData.length/1000)}KB`);
                     
                     console.log(`📏 Dimensione firma: ${signatureData.length} caratteri`);
                         resultDiv.innerHTML = '📤 Caricamento firma cliente...';
