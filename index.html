@@ -1656,48 +1656,66 @@
             }
 
             try {
-                // Compressione aggressiva per Google Apps Script
-                let signatureData = clientSignatureCanvas.toDataURL('image/png');
+                // OTTIMIZZAZIONE CANVAS: Rimuovi spazi bianchi inutili
+                const trimmedCanvas = trimCanvasWhitespace(clientSignatureCanvas);
+                console.log(`✂️ Canvas ottimizzato: ${clientSignatureCanvas.width}x${clientSignatureCanvas.height} → ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                 
-                // Prima compressione se >25KB (soglia ottimizzata per GAS)
+                // COMPRESSIONE ULTRA-AGGRESSIVA per Google Apps Script
+                let signatureData = trimmedCanvas.toDataURL('image/png');
+                console.log(`🖊️ Originale: ${Math.round(signatureData.length/1000)}KB (${trimmedCanvas.width}x${trimmedCanvas.height})`);
+                
+                // Strategia 1: JPEG 30% se >15KB
+                if (signatureData.length > 15000) {
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.3);
+                    console.log(`🗜️ JPEG 30%: ${Math.round(signatureData.length/1000)}KB`);
+                }
+                
+                // Strategia 2: JPEG 20% se >25KB 
                 if (signatureData.length > 25000) {
-                    console.log('🗜️ Prima compressione firma cliente...');
-                    signatureData = clientSignatureCanvas.toDataURL('image/jpeg', 0.6); // 60% qualità
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.2);
+                    console.log(`🗜️ JPEG 20%: ${Math.round(signatureData.length/1000)}KB`);
                 }
                 
-                // Seconda compressione se ancora >40KB (soglia ridotta)
-                if (signatureData.length > 40000) {
-                    console.log('🗜️ Compressione aggressiva firma cliente...');
-                    signatureData = clientSignatureCanvas.toDataURL('image/jpeg', 0.4); // 40% qualità
-                }
-                
-                // Ultima risorsa: ridimensiona se ancora troppo grande
-                if (signatureData.length > 60000) {
-                    console.log('📏 Ridimensionamento firma cliente per GAS...');
+                // Strategia 3: Resize drastico se >35KB
+                if (signatureData.length > 35000) {
                     const tempCanvas = document.createElement('canvas');
                     const tempCtx = tempCanvas.getContext('2d');
-                    const img = new Image();
                     
-                    img.onload = function() {
-                        // Ridimensiona al 70%
-                        tempCanvas.width = clientSignatureCanvas.width * 0.7;
-                        tempCanvas.height = clientSignatureCanvas.height * 0.7;
-                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-                        signatureData = tempCanvas.toDataURL('image/jpeg', 0.5);
-                        console.log(`📏 Dimensione finale dopo ridimensionamento: ${signatureData.length} caratteri`);
-                        clientSignatureData = signatureData;
-                        updateClientSignatureStatus(true);
-                        showAlert('Successo', 'Firma del cliente confermata e ottimizzata! Sarà inviata insieme al rapporto.', 'success');
-                    };
-                    img.src = signatureData;
-                } else {
-                    console.log(`📏 Dimensione finale firma cliente: ${signatureData.length} caratteri`);
-                    clientSignatureData = signatureData;
-                    updateClientSignatureStatus(true);
+                    // Dimensioni target molto piccole
+                    tempCanvas.width = Math.min(300, trimmedCanvas.width * 0.4);
+                    tempCanvas.height = Math.min(150, trimmedCanvas.height * 0.4);
                     
-                    // La firma verrà inviata al server durante il submit del rapporto
-                    showAlert('Successo', 'Firma del cliente confermata! Sarà inviata insieme al rapporto.', 'success');
+                    // Sfondo bianco per contrasto
+                    tempCtx.fillStyle = 'white';
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Ridisegna firma ridimensionata
+                    tempCtx.drawImage(trimmedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                    signatureData = tempCanvas.toDataURL('image/jpeg', 0.25);
+                    console.log(`🗜️ Resize ${tempCanvas.width}x${tempCanvas.height} JPEG 25%: ${Math.round(signatureData.length/1000)}KB`);
                 }
+                
+                // Strategia 4: Dimensioni minime se >50KB (ultima risorsa)
+                if (signatureData.length > 50000) {
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    tempCanvas.width = 200;
+                    tempCanvas.height = 100;
+                    
+                    tempCtx.fillStyle = 'white';
+                    tempCtx.fillRect(0, 0, 200, 100);
+                    tempCtx.drawImage(trimmedCanvas, 0, 0, 200, 100);
+                    signatureData = tempCanvas.toDataURL('image/jpeg', 0.15);
+                    console.log(`🗜️ MINI 200x100 JPEG 15%: ${Math.round(signatureData.length/1000)}KB`);
+                }
+                
+                console.log(`✅ Dimensione finale: ${Math.round(signatureData.length/1000)}KB`);
+                clientSignatureData = signatureData;
+                updateClientSignatureStatus(true);
+                
+                // La firma verrà inviata al server durante il submit del rapporto
+                showAlert('Successo', 'Firma del cliente confermata! Sarà inviata insieme al rapporto.', 'success');
             } catch (error) {
                 console.error('Errore nel confermare la firma:', error);
                 showAlert('Errore', 'Errore nel confermare la firma.', 'error');
@@ -1705,6 +1723,60 @@
         }
 
         // Funzione rimossa - la firma cliente viene ora inviata durante il submit del rapporto
+
+        // ✂️ FUNZIONE OTTIMIZZAZIONE CANVAS: Rimuove spazi bianchi inutili
+        function trimCanvasWhitespace(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+            
+            // Trova i bounds del contenuto non-bianco
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const index = (y * canvas.width + x) * 4;
+                    const alpha = data[index + 3];
+                    
+                    // Se il pixel non è trasparente o bianco puro
+                    if (alpha > 0 && !(data[index] === 255 && data[index + 1] === 255 && data[index + 2] === 255)) {
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            
+            // Se non c'è contenuto, ritorna canvas piccolo
+            if (minX >= maxX || minY >= maxY) {
+                const emptyCanvas = document.createElement('canvas');
+                emptyCanvas.width = 100;
+                emptyCanvas.height = 50;
+                return emptyCanvas;
+            }
+            
+            // Aggiungi padding minimo
+            const padding = 5;
+            minX = Math.max(0, minX - padding);
+            minY = Math.max(0, minY - padding);
+            maxX = Math.min(canvas.width - 1, maxX + padding);
+            maxY = Math.min(canvas.height - 1, maxY + padding);
+            
+            // Crea canvas ottimizzato
+            const trimmedCanvas = document.createElement('canvas');
+            trimmedCanvas.width = maxX - minX + 1;
+            trimmedCanvas.height = maxY - minY + 1;
+            
+            const trimmedCtx = trimmedCanvas.getContext('2d');
+            trimmedCtx.fillStyle = 'white';
+            trimmedCtx.fillRect(0, 0, trimmedCanvas.width, trimmedCanvas.height);
+            
+            // Copia solo la parte con contenuto
+            trimmedCtx.drawImage(canvas, minX, minY, trimmedCanvas.width, trimmedCanvas.height, 0, 0, trimmedCanvas.width, trimmedCanvas.height);
+            
+            return trimmedCanvas;
+        }
 
         // Event listeners per i pulsanti delle firme
         function initializeSignatureEventListeners() {
