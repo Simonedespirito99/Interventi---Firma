@@ -37,7 +37,7 @@
                     <!-- Firma touch-friendly -->
                     <div class="mt-6">
                         <label class="block text-lg font-medium mb-3 text-gray-700">✍️ Firma del Cliente:</label>
-                        <canvas id="signatureCanvas" width="200" height="80" class="signature-canvas w-full bg-white"></canvas>
+                        <canvas id="signatureCanvas" width="300" height="120" class="signature-canvas w-full bg-white"></canvas>
                         <button type="button" onclick="clearSignature()" class="mt-2 text-sm text-red-600 underline">🗑️ Cancella Firma</button>
                     </div>
                     
@@ -259,48 +259,46 @@
                     emptyCanvas.height = canvas.height;
                     
                     if (signatureData !== emptyCanvas.toDataURL()) {
-                    // 💯 RIDUZIONE DRASTICA 90% - VERSIONE ESTREMA
-                    console.log(`🔴 Originale canvas: ${canvas.width}x${canvas.height}`);
+                    // ✅ COMPRESSIONE BILANCIATA - Qualità vs Dimensioni
+                    console.log(`📱 Canvas mobile originale: ${canvas.width}x${canvas.height}`);
                     
-                    // STEP 1: Trim aggressivo (rimuove spazi bianchi)
+                    // STEP 1: Trim spazi bianchi (funzione che forse non veniva applicata prima)
                     const trimmedCanvas = trimCanvasWhitespace(canvas);
                     console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                     
-                    // STEP 2: Ridimensiona IMMEDIATAMENTE a dimensioni MINI
-                    const miniCanvas = document.createElement('canvas');
-                    const miniCtx = miniCanvas.getContext('2d');
+                    // STEP 2: Parti da PNG per qualità base
+                    signatureData = trimmedCanvas.toDataURL('image/png');
+                    console.log(`📊 PNG originale: ${Math.round(signatureData.length/1000)}KB`);
                     
-                    // Dimensioni ESTREMAMENTE ridotte per mobile
-                    miniCanvas.width = Math.min(80, Math.max(40, trimmedCanvas.width * 0.2));
-                    miniCanvas.height = Math.min(40, Math.max(20, trimmedCanvas.height * 0.2));
-                    
-                    // Sfondo bianco per contrasto
-                    miniCtx.fillStyle = 'white';
-                    miniCtx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
-                    
-                    // Ridisegna la firma in versione mini
-                    miniCtx.drawImage(trimmedCanvas, 0, 0, miniCanvas.width, miniCanvas.height);
-                    
-                    // STEP 3: Compressione JPEG qualità minima
-                    signatureData = miniCanvas.toDataURL('image/jpeg', 0.1); // 10% qualità
-                    
-                    console.log(`💯 RISULTATO FINALE: ${miniCanvas.width}x${miniCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
-                    
-                    // Controllo di sicurezza: se ancora troppo grande, usa dimensioni fisse minime
-                    if (signatureData.length > 15000) { // >15KB ancora troppo
-                        const microCanvas = document.createElement('canvas');
-                        const microCtx = microCanvas.getContext('2d');
-                        
-                        microCanvas.width = 60;
-                        microCanvas.height = 30;
-                        
-                        microCtx.fillStyle = 'white';
-                        microCtx.fillRect(0, 0, 60, 30);
-                        microCtx.drawImage(trimmedCanvas, 0, 0, 60, 30);
-                        
-                        signatureData = microCanvas.toDataURL('image/jpeg', 0.05); // 5% qualità
-                        console.log(`🔴 MICRO 60x30 JPEG 5%: ${Math.round(signatureData.length/1000)}KB`);
+                    // STEP 3: Compressione JPEG progressiva (non troppo aggressiva)
+                    if (signatureData.length > 30000) { // >30KB - JPEG 50%
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.5);
+                        console.log(`🗜️ JPEG 50%: ${Math.round(signatureData.length/1000)}KB`);
                     }
+                    
+                    if (signatureData.length > 50000) { // >50KB - JPEG 35%
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.35);
+                        console.log(`🗜️ JPEG 35%: ${Math.round(signatureData.length/1000)}KB`);
+                    }
+                    
+                    // STEP 4: Solo se necessario, resize moderato
+                    if (signatureData.length > 80000) { // >80KB - Resize moderato
+                        const resizedCanvas = document.createElement('canvas');
+                        const resizedCtx = resizedCanvas.getContext('2d');
+                        
+                        // Ridimensiona a 70% (non troppo piccolo)
+                        resizedCanvas.width = Math.max(100, trimmedCanvas.width * 0.7);
+                        resizedCanvas.height = Math.max(50, trimmedCanvas.height * 0.7);
+                        
+                        resizedCtx.fillStyle = 'white';
+                        resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
+                        resizedCtx.drawImage(trimmedCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+                        
+                        signatureData = resizedCanvas.toDataURL('image/jpeg', 0.4);
+                        console.log(`📏 Resize 70% + JPEG 40%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                    }
+                    
+                    console.log(`✅ FINALE BILANCIATO: ${Math.round(signatureData.length/1000)}KB`);
                     
                     console.log(`📏 Dimensione firma: ${signatureData.length} caratteri`);
                         resultDiv.innerHTML = '📤 Caricamento firma cliente...';
