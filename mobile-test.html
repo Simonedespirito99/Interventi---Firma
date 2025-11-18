@@ -106,6 +106,54 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
         
+        // ✂️ FUNZIONE OTTIMIZZAZIONE CANVAS MOBILE
+        function trimCanvasWhitespace(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+            
+            // Trova bounds del contenuto
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const index = (y * canvas.width + x) * 4;
+                    const alpha = data[index + 3];
+                    
+                    if (alpha > 0 && !(data[index] === 255 && data[index + 1] === 255 && data[index + 2] === 255)) {
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            
+            if (minX >= maxX || minY >= maxY) {
+                const emptyCanvas = document.createElement('canvas');
+                emptyCanvas.width = 100;
+                emptyCanvas.height = 50;
+                return emptyCanvas;
+            }
+            
+            const padding = 3; // Padding ridotto per mobile
+            minX = Math.max(0, minX - padding);
+            minY = Math.max(0, minY - padding);
+            maxX = Math.min(canvas.width - 1, maxX + padding);
+            maxY = Math.min(canvas.height - 1, maxY + padding);
+            
+            const trimmedCanvas = document.createElement('canvas');
+            trimmedCanvas.width = maxX - minX + 1;
+            trimmedCanvas.height = maxY - minY + 1;
+            
+            const trimmedCtx = trimmedCanvas.getContext('2d');
+            trimmedCtx.fillStyle = 'white';
+            trimmedCtx.fillRect(0, 0, trimmedCanvas.width, trimmedCanvas.height);
+            trimmedCtx.drawImage(canvas, minX, minY, trimmedCanvas.width, trimmedCanvas.height, 0, 0, trimmedCanvas.width, trimmedCanvas.height);
+            
+            return trimmedCanvas;
+        }
+        
         function testConnection() {
             const resultDiv = document.getElementById('connectionResult');
             resultDiv.innerHTML = '🔄 Connessione in corso...';
@@ -200,32 +248,56 @@
                     emptyCanvas.height = canvas.height;
                     
                     if (signatureData !== emptyCanvas.toDataURL()) {
-                    // Compressione aggressiva per evitare timeout GAS
-                    if (signatureData.length > 25000) {
-                        console.log('🗜️ Prima compressione firma...');
-                        signatureData = canvas.toDataURL('image/jpeg', 0.6); // 60% qualità
+                    // OTTIMIZZAZIONE MOBILE: Trim canvas
+                    const trimmedCanvas = trimCanvasWhitespace(canvas);
+                    signatureData = trimmedCanvas.toDataURL('image/png');
+                    console.log(`✂️ Mobile ottimizzato: ${canvas.width}x${canvas.height} → ${trimmedCanvas.width}x${trimmedCanvas.height}`);
+                    
+                    // COMPRESSIONE ULTRA-AGGRESSIVA MOBILE
+                    console.log(`📱 Mobile originale: ${Math.round(signatureData.length/1000)}KB (${trimmedCanvas.width}x${trimmedCanvas.height})`);
+                    
+                    // Mobile: soglie più basse per touch screen
+                    if (signatureData.length > 12000) {
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.3);
+                        console.log(`🗜️ Mobile JPEG 30%: ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    if (signatureData.length > 40000) {
-                        console.log('🗜️ Compressione aggressiva firma...');
-                        signatureData = canvas.toDataURL('image/jpeg', 0.4); // 40% qualità
+                    if (signatureData.length > 20000) {
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.2);
+                        console.log(`🗜️ Mobile JPEG 20%: ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    // Ultima risorsa: ridimensiona se ancora troppo grande
-                    if (signatureData.length > 60000) {
-                        console.log('📏 Ridimensionamento firma per GAS...');
+                    // Resize drastico mobile se >30KB
+                    if (signatureData.length > 30000) {
                         const tempCanvas = document.createElement('canvas');
                         const tempCtx = tempCanvas.getContext('2d');
-                        const img = new Image();
                         
-                        img.onload = function() {
-                            // Ridimensiona al 70%
-                            tempCanvas.width = canvas.width * 0.7;
-                            tempCanvas.height = canvas.height * 0.7;
-                            tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-                            signatureData = tempCanvas.toDataURL('image/jpeg', 0.5);
-                        };
-                        img.src = signatureData;
+                        // Dimensioni mobile molto compatte
+                        tempCanvas.width = Math.min(250, trimmedCanvas.width * 0.3);
+                        tempCanvas.height = Math.min(125, trimmedCanvas.height * 0.3);
+                        
+                        tempCtx.fillStyle = 'white';
+                        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                        tempCtx.drawImage(trimmedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                        
+                        signatureData = tempCanvas.toDataURL('image/jpeg', 0.2);
+                        console.log(`🗜️ Mobile resize ${tempCanvas.width}x${tempCanvas.height}: ${Math.round(signatureData.length/1000)}KB`);
+                    }
+                    
+                    // Ultima risorsa mobile: mini formato
+                    if (signatureData.length > 45000) {
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        
+                        tempCanvas.width = 150;
+                        tempCanvas.height = 75;
+                        
+                        tempCtx.fillStyle = 'white';
+                        tempCtx.fillRect(0, 0, 150, 75);
+                        tempCtx.drawImage(trimmedCanvas, 0, 0, 150, 75);
+                        
+                        signatureData = tempCanvas.toDataURL('image/jpeg', 0.1);
+                        console.log(`🗜️ Mobile MINI 150x75: ${Math.round(signatureData.length/1000)}KB`);
                     }                        console.log(`📏 Dimensione firma: ${signatureData.length} caratteri`);
                         resultDiv.innerHTML = '📤 Caricamento firma cliente...';
                         
