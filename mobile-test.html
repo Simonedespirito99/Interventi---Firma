@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMIRT - Mobile Test</title>
+    <title>SMIRT - Test Mobile</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .signature-canvas {
@@ -18,35 +18,35 @@
     <div class="min-h-screen p-4">
         <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="p-6">
-                <h1 class="text-2xl font-bold text-center mb-6 text-blue-600">📱 SMIRT Mobile</h1>
+                <h1 class="text-2xl font-bold text-center mb-6">📱 SMIRT Mobile Test</h1>
                 
                 <!-- Test connessione -->
                 <div class="mb-6">
-                    <button onclick="testConnection()" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-semibold">
-                        🔄 Test Connessione
+                    <button onclick="testConnection()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                        Test Connessione
                     </button>
                     <div id="connectionResult" class="mt-2 text-sm"></div>
                 </div>
                 
                 <!-- Form rapido -->
                 <form id="quickForm" class="space-y-4">
-                    <input type="text" id="luogo" placeholder="📍 Luogo intervento" class="w-full p-3 border rounded-lg text-lg" required>
-                    <input type="date" id="dataInizio" class="w-full p-3 border rounded-lg text-lg" required>
-                    <textarea id="descrizione" placeholder="📝 Descrizione lavoro" class="w-full p-3 border rounded-lg h-24 text-lg resize-none"></textarea>
+                    <input type="text" id="luogo" placeholder="Luogo intervento" class="w-full p-3 border rounded-lg" required>
+                    <input type="date" id="dataInizio" class="w-full p-3 border rounded-lg" required>
+                    <textarea id="descrizione" placeholder="Descrizione" class="w-full p-3 border rounded-lg h-20"></textarea>
                     
                     <!-- Firma touch-friendly -->
-                    <div class="mt-6">
-                        <label class="block text-lg font-medium mb-3 text-gray-700">✍️ Firma del Cliente:</label>
-                        <canvas id="signatureCanvas" width="280" height="120" class="signature-canvas w-full bg-white"></canvas>
-                        <button type="button" onclick="clearSignature()" class="mt-2 text-sm text-red-600 underline">🗑️ Cancella Firma</button>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-2">Firma del Cliente:</label>
+                        <canvas id="signatureCanvas" width="300" height="150" class="signature-canvas w-full"></canvas>
+                        <button type="button" onclick="clearSignature()" class="mt-2 text-sm text-red-600">Cancella Firma</button>
                     </div>
                     
-                    <button type="submit" class="w-full bg-green-600 text-white py-4 px-4 rounded-lg hover:bg-green-700 font-bold text-lg">
+                    <button type="submit" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700">
                         📤 Invia Rapporto
                     </button>
                 </form>
                 
-                <div id="result" class="mt-4 text-sm font-medium"></div>
+                <div id="result" class="mt-4 text-sm"></div>
             </div>
         </div>
     </div>
@@ -59,11 +59,6 @@
         const canvas = document.getElementById('signatureCanvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
-        
-        // Stile del disegno
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
         
         // Touch and mouse events
         canvas.addEventListener('mousedown', startDrawing);
@@ -108,16 +103,15 @@
         
         function testConnection() {
             const resultDiv = document.getElementById('connectionResult');
-            resultDiv.innerHTML = '🔄 Connessione in corso...';
-            resultDiv.className = 'mt-2 text-sm text-blue-600';
+            resultDiv.innerHTML = '🔄 Testing...';
             
             makeJsonpRequest('ping', {}, (response) => {
                 if (response.status === 'pong') {
-                    resultDiv.innerHTML = '✅ Connessione OK! Server attivo';
-                    resultDiv.className = 'mt-2 text-sm text-green-600 font-semibold';
+                    resultDiv.innerHTML = '✅ Connessione OK!';
+                    resultDiv.className = 'mt-2 text-sm text-green-600';
                 } else {
                     resultDiv.innerHTML = '❌ Errore: ' + response.message;
-                    resultDiv.className = 'mt-2 text-sm text-red-600 font-semibold';
+                    resultDiv.className = 'mt-2 text-sm text-red-600';
                 }
             });
         }
@@ -126,21 +120,9 @@
             const callbackName = 'jsonpCallback' + Date.now();
             const script = document.createElement('script');
             
-            // Timeout per evitare hang
-            const timeoutId = setTimeout(() => {
-                callback({status: 'error', message: 'Timeout connessione'});
-                if (document.head.contains(script)) {
-                    document.head.removeChild(script);
-                }
-                delete window[callbackName];
-            }, 10000);
-            
             window[callbackName] = function(response) {
-                clearTimeout(timeoutId);
                 callback(response);
-                if (document.head.contains(script)) {
-                    document.head.removeChild(script);
-                }
+                document.head.removeChild(script);
                 delete window[callbackName];
             };
             
@@ -158,7 +140,7 @@
             e.preventDefault();
             
             const formData = {
-                user: 'mobile-utente',
+                user: 'mobile-user',
                 tipoIntervento: 'ordinario',
                 luogo: document.getElementById('luogo').value,
                 dataInizio: document.getElementById('dataInizio').value,
@@ -169,23 +151,15 @@
             
             const resultDiv = document.getElementById('result');
             resultDiv.innerHTML = '📤 Invio in corso...';
-            resultDiv.className = 'mt-4 text-sm font-medium text-blue-600';
             
             // Fase 1: Salva dati
             makeJsonpRequest('save', formData, (response) => {
                 if (response.status === 'success') {
                     resultDiv.innerHTML = '✅ Dati salvati! Buono: ' + response.buonoLavoro;
-                    resultDiv.className = 'mt-4 text-sm font-medium text-green-600';
                     
                     // Fase 2: Upload firma se presente
                     const signatureData = canvas.toDataURL();
-                    const emptyCanvas = document.createElement('canvas');
-                    emptyCanvas.width = canvas.width;
-                    emptyCanvas.height = canvas.height;
-                    
-                    if (signatureData !== emptyCanvas.toDataURL()) {
-                        resultDiv.innerHTML = '📤 Caricamento firma...';
-                        
+                    if (signatureData !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=') {
                         const signatureUpload = {
                             buonoLavoro: response.buonoLavoro,
                             tipoIntervento: 'ordinario',
@@ -194,34 +168,28 @@
                         
                         makeJsonpRequest('upload-client-signature', signatureUpload, (signResponse) => {
                             if (signResponse.status === 'success') {
-                                resultDiv.innerHTML = '🎉 Rapporto completo inviato con successo!';
-                                resultDiv.className = 'mt-4 text-sm font-medium text-green-600';
+                                resultDiv.innerHTML = '🎉 Rapporto completo inviato!';
+                                resultDiv.className = 'mt-4 text-sm text-green-600';
                                 document.getElementById('quickForm').reset();
                                 clearSignature();
                             } else {
                                 resultDiv.innerHTML = '⚠️ Dati salvati ma errore firma: ' + signResponse.message;
-                                resultDiv.className = 'mt-4 text-sm font-medium text-orange-600';
+                                resultDiv.className = 'mt-4 text-sm text-orange-600';
                             }
                         });
                     } else {
                         resultDiv.innerHTML = '✅ Rapporto salvato (senza firma)';
-                        resultDiv.className = 'mt-4 text-sm font-medium text-green-600';
-                        document.getElementById('quickForm').reset();
+                        resultDiv.className = 'mt-4 text-sm text-green-600';
                     }
                 } else {
-                    resultDiv.innerHTML = '❌ Errore: ' + (response.message || 'Errore sconosciuto');
-                    resultDiv.className = 'mt-4 text-sm font-medium text-red-600';
+                    resultDiv.innerHTML = '❌ Errore: ' + response.message;
+                    resultDiv.className = 'mt-4 text-sm text-red-600';
                 }
             });
         });
         
         // Auto-set today's date
         document.getElementById('dataInizio').value = new Date().toISOString().split('T')[0];
-        
-        // Test automatico connessione al caricamento
-        window.addEventListener('load', () => {
-            setTimeout(testConnection, 1000);
-        });
     </script>
 </body>
 </html>
