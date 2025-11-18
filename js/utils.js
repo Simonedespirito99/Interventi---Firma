@@ -151,11 +151,11 @@ class SMIRTUtils {
             const callbackName = 'jsonpCallback' + Date.now();
             let timeoutId;
             
-            // Calcola timeout dinamico in base ai dati
+            // Calcola timeout dinamico ottimizzato per Google Apps Script
             const dataSize = JSON.stringify(params).length;
-            const baseTimeout = 15000; // 15 secondi base (aumentato)
-            const extraTimeout = Math.floor(dataSize / 10000) * 5000; // +5s ogni 10KB
-            const dynamicTimeout = timeout || Math.min(baseTimeout + extraTimeout, 45000); // Max 45s
+            const baseTimeout = 8000; // 8 secondi base (realistico per GAS)
+            const extraTimeout = Math.floor(dataSize / 20000) * 2000; // +2s ogni 20KB
+            const dynamicTimeout = timeout || Math.min(baseTimeout + extraTimeout, 12000); // Max 12s
             
             console.log(`📊 JSONP ${params.action}: ${dataSize} bytes, timeout: ${dynamicTimeout}ms`);
             
