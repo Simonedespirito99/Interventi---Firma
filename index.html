@@ -1656,46 +1656,46 @@
             }
 
             try {
-                // ⚖️ COMPRESSIONE EQUILIBRATA DESKTOP - Ottimale per GAS
+                // 💬 COMPRESSIONE AGGRESSIVA DESKTOP - Massima efficienza GAS
                 console.log(`🖥️ Desktop canvas originale: ${clientSignatureCanvas.width}x${clientSignatureCanvas.height}`);
                 
                 // STEP 1: Trim spazi bianchi (fondamentale)
                 const trimmedCanvas = trimCanvasWhitespace(clientSignatureCanvas);
                 console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                 
-                // STEP 2: Parti direttamente da JPEG 50% (salta PNG)
-                let signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.5);
-                console.log(`🗜️ JPEG 50% iniziale: ${Math.round(signatureData.length/1000)}KB`);
+                // STEP 2: Parti da JPEG 35% (più aggressivo)
+                let signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.35);
+                console.log(`🗜️ JPEG 35% iniziale: ${Math.round(signatureData.length/1000)}KB`);
                 
-                // STEP 3: Compressione più aggressiva se necessario
-                if (signatureData.length > 25000) { // >25KB - JPEG 35%
-                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.35);
-                    console.log(`🗜️ JPEG 35%: ${Math.round(signatureData.length/1000)}KB`);
-                }
-                
-                if (signatureData.length > 40000) { // >40KB - JPEG 25%
+                // STEP 3: Compressione aggressiva desktop
+                if (signatureData.length > 18000) { // >18KB - JPEG 25%
                     signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.25);
                     console.log(`🗜️ JPEG 25%: ${Math.round(signatureData.length/1000)}KB`);
                 }
                 
-                // STEP 4: Resize se ancora troppo grande
-                if (signatureData.length > 60000) { // >60KB - Resize efficace
+                if (signatureData.length > 30000) { // >30KB - JPEG 20%
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.2);
+                    console.log(`🗜️ JPEG 20%: ${Math.round(signatureData.length/1000)}KB`);
+                }
+                
+                // STEP 4: Resize desktop se necessario
+                if (signatureData.length > 45000) { // >45KB - Resize desktop
                     const resizedCanvas = document.createElement('canvas');
                     const resizedCtx = resizedCanvas.getContext('2d');
                     
-                    // Ridimensiona a 60% per efficacia
-                    resizedCanvas.width = Math.max(120, trimmedCanvas.width * 0.6);
-                    resizedCanvas.height = Math.max(60, trimmedCanvas.height * 0.6);
+                    // Desktop: ridimensiona a 50% per efficacia
+                    resizedCanvas.width = Math.max(100, trimmedCanvas.width * 0.5);
+                    resizedCanvas.height = Math.max(50, trimmedCanvas.height * 0.5);
                     
                     resizedCtx.fillStyle = 'white';
                     resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
                     resizedCtx.drawImage(trimmedCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
                     
-                    signatureData = resizedCanvas.toDataURL('image/jpeg', 0.3);
-                    console.log(`📏 Resize 60% + JPEG 30%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                    signatureData = resizedCanvas.toDataURL('image/jpeg', 0.22);
+                    console.log(`📏 Desktop Resize 50% + JPEG 22%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
                 }
                 
-                console.log(`⚖️ DESKTOP EQUILIBRATO: ${Math.round(signatureData.length/1000)}KB`);
+                console.log(`💬 DESKTOP AGGRESSIVO: ${Math.round(signatureData.length/1000)}KB`);
                 
                 console.log(`✅ Dimensione finale: ${Math.round(signatureData.length/1000)}KB`);
                 clientSignatureData = signatureData;
