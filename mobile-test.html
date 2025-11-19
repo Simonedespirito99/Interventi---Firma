@@ -259,46 +259,46 @@
                     emptyCanvas.height = canvas.height;
                     
                     if (signatureData !== emptyCanvas.toDataURL()) {
-                    // 🚀 COMPRESSIONE ULTRA-MOBILE - Target 3-8KB
+                    // 🔥 COMPRESSIONE MASSIMA MOBILE - Target 2-6KB
                     console.log(`📱 Canvas mobile originale: ${canvas.width}x${canvas.height}`);
                     
                     // STEP 1: Trim spazi bianchi (essenziale)
                     const trimmedCanvas = trimCanvasWhitespace(canvas);
                     console.log(`✂️ Dopo trim: ${trimmedCanvas.width}x${trimmedCanvas.height}`);
                     
-                    // STEP 2: Parti da JPEG 18% (ultra-aggressivo)
-                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.18);
-                    console.log(`🗜️ JPEG 18% iniziale: ${Math.round(signatureData.length/1000)}KB`);
+                    // STEP 2: Parti da JPEG 14% (massima compressione mobile)
+                    signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.14);
+                    console.log(`🗜️ JPEG 14% iniziale: ${Math.round(signatureData.length/1000)}KB`);
                     
-                    // STEP 3: Compressione ultra per mobile
-                    if (signatureData.length > 10000) { // >10KB - JPEG 15%
-                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.15);
-                        console.log(`🗜️ JPEG 15%: ${Math.round(signatureData.length/1000)}KB`);
-                    }
-                    
-                    if (signatureData.length > 18000) { // >18KB - JPEG 12%
+                    // STEP 3: Compressione massima mobile
+                    if (signatureData.length > 6000) { // >6KB - JPEG 12%
                         signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.12);
                         console.log(`🗜️ JPEG 12%: ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    // STEP 4: Resize mobile ultra se necessario
-                    if (signatureData.length > 25000) { // >25KB - Resize ultra
+                    if (signatureData.length > 12000) { // >12KB - JPEG 10%
+                        signatureData = trimmedCanvas.toDataURL('image/jpeg', 0.1);
+                        console.log(`🗜️ JPEG 10%: ${Math.round(signatureData.length/1000)}KB`);
+                    }
+                    
+                    // STEP 4: Resize mobile massimo se necessario
+                    if (signatureData.length > 16000) { // >16KB - Resize massimo
                         const resizedCanvas = document.createElement('canvas');
                         const resizedCtx = resizedCanvas.getContext('2d');
                         
-                        // Mobile: ridimensiona a 35% per massima efficacia
-                        resizedCanvas.width = Math.max(70, trimmedCanvas.width * 0.35);
-                        resizedCanvas.height = Math.max(35, trimmedCanvas.height * 0.35);
+                        // Mobile: ridimensiona a 25% per massima efficacia
+                        resizedCanvas.width = Math.max(60, trimmedCanvas.width * 0.25);
+                        resizedCanvas.height = Math.max(30, trimmedCanvas.height * 0.25);
                         
                         resizedCtx.fillStyle = 'white';
                         resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
                         resizedCtx.drawImage(trimmedCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
                         
-                        signatureData = resizedCanvas.toDataURL('image/jpeg', 0.14);
-                        console.log(`📏 Mobile Resize 35% + JPEG 14%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
+                        signatureData = resizedCanvas.toDataURL('image/jpeg', 0.11);
+                        console.log(`📏 Mobile Resize 25% + JPEG 11%: ${resizedCanvas.width}x${resizedCanvas.height} = ${Math.round(signatureData.length/1000)}KB`);
                     }
                     
-                    console.log(`🚀 MOBILE ULTRA: ${Math.round(signatureData.length/1000)}KB`);
+                    console.log(`🔥 MOBILE MASSIMO: ${Math.round(signatureData.length/1000)}KB`);
                     
                     console.log(`📏 Dimensione firma: ${signatureData.length} caratteri`);
                         resultDiv.innerHTML = '📤 Caricamento firma cliente...';
